@@ -1,0 +1,160 @@
+Tema 2 - ASC
+Student: Berbece Daniel
+Grupa: 335CA
+
+		1. Cerinta
+
+	Tema consta in implementarea unei operatii pe matrici folosind 4
+metode diferite:
+	a) neoptimizata, ce presupune un cod usor de scris si de citit,
+o implementare mai naiva
+	b) optimizata prin flaguri de compilare, codul fiind identic cu
+cel al variantei neoptimizate
+	c) o varianta optimizata din cod, folosind cat mai mult cache-ul
+si eliminand operatiile nefolositoare
+	d) ultima metoda, folosind biblioteca BLAS
+
+	Toate metodele au fost compilate si testate atat cu compilatorul
+gcc-5.4.0, cat si cu icc 16.0.2
+
+		2. Comparatii metode
+
+	a) varianta neopt
+
+	Implementarea se poate gasi in fisierul solver_neopt.c. Timpii
+optinuti pentru aceasta implementare sunt:
+	Folosind gcc-5.4.0:
+		N =  400: Time=2.008445;
+		N = 1000: Time=26.847488;
+		N = 1600: Time=158.406860;
+	Folosind icc 16.0.2:
+		N =  400: Time=2.012495;
+		N = 1000: Time=26.943560;
+		N = 1600: Time=160.040131;
+	Se poate observa ca timpii sunt foarte apropiati, deci in acest
+caz compilatorul nu face prea mare diferenta. Daca e sa luam in detaliu, atunci 
+compilatorul gcc ar fi alegerea mai buna in cazul asta.
+
+	b) varianta optimizata prin flaguri de compilare
+
+	Implementare este aceeasi cu cea a variantei neoptimale, singura
+diferenta fiind in modul de compilare. In aceasta varianta am
+adaugat flagul -O3, care reprezinta cel mai inalt nivel de
+optimizare oferit de catre compilator. Acesta contine mai multe
+flaguri de optimizari granulare. Timpii optinuti sunt:
+	Folosind gcc-5.4.0:
+		N =  400: Time=0.409964;
+		N = 1000: Time=5.669283;
+		N = 1600: Time=35.043991;
+	Folosind icc 16.0.2:
+		N =  400: Time=0.102714;
+		N = 1000: Time=1.657188;
+		N = 1600: Time=9.366156;
+	Se poate observa ca intre cele doua compilatoare exista o mare 
+diferenta de timp, de ordinul 3.5x-4x in favoarea compilatoarului
+de la intel. In comparatie cu varianta neoptimizata (a) timpul
+scade de ~5x pentru compilatorul gcc, si scade de ~17x. De remarcat
+faptul ca toate aceste imbunatatiri au fost aduse intr-un mod
+usor, doar adaugand un singur flag la compilarea unui cod neoptimizat.
+Din acest lucru rezulta usurinta prin care se poate optimiza un
+cod folosind un compilator bun.
+
+	c) varianta optimizata prin rescrierea codului
+
+	Implementarea pentru aceasta varianta se poate gasi in fisierul
+solver_opt.c. Optimizarile la nivel se pot face mai greu, fiind mai
+dependente de problema. Analizand ecuatia putin, se poate observa
+ca la sfarsit obtinem doar o matrice superior triunghiulara. Ca urmare
+nu are sens sa calculam elementele din partea inferioara a matricei
+intrucat vor deveni 0 in cadrul operatiei "zerotr". Folosindu-ne de
+putine cunostinte matematice, deducem ca:
+		- Adunarea a doua matrici superior triunghiulare rezulta intr-o
+		matrice superior triunghiulara
+		- Inmultirea a doua matrici superior triunghiulare rezulta intr-o
+		matrice superior triunghiulara
+	Prin urmare, putem include operatia "zerotr" in cadrul operatiei de
+inmultire, prin a trece peste calculul elementelor din partea inferioara
+a matricei.
+	In final, singura operatie care are loc pentru toata matricea este cea
+de calcul a transpusei. Celelalte operatii se fac doar pentru partea superioara
+a matricei (adunare, inmultire, ridicare la patrat).
+	Alte optimizari de cod folosite au fost:
+		- folosirea keywordului "register" la declararea variabilelor
+		- reordonarea forurilor pentru a beneficia de localitatea spatiala si
+		temporala in ceea ce priveste cache-ul
+		- folosirea de pointeri incrementali, pentru evitarea inmultirilor dese
+		in favoarea adunarilor
+	Timpii optinuti in urma acestei implementari, folosind coada ibm-dp.q, sunt:
+	Folosind gcc-5.4.0:
+		N =  400: Time=0.318771;
+		N = 1000: Time=4.401309;
+		N = 1600: Time=20.805656;
+	Folosind icc 16.0.2:
+		N =  400: Time=0.986121;
+		N = 1000: Time=13.473020;
+		N = 1600: Time=56.394428;
+	Intre cele doua compilatoare se vede o diferenta mai mare, in favoarea
+gcc-ului. Pentru gcc, in comparatie cu celelalte metode am obtinut timpi mai
+buni, inclusiv fata de varianta optimizata prin flaguri de compilare. Aceasta
+varianta nu foloseste flaguri, insa ele ar putea imbunatati si mai mult timpul
+de rulare. Din pacate, pentru compilatorul icc imbunatatirile de cod nu au fost
+la fel de impunatoare ca pentru gcc. Timpii sunt mai mici decat varianta
+neoptimizata, insa sunt mai mari decat varianta optimizata prin flaguri
+de compilare. Ceea ce inseamna ca icc stie sa optimizeze mult mai bine singur
+un cod banal decat gcc, insa gcc stie sa se foloseasca de optimizarile aduse
+de catre programator.
+
+	d) varianta folosind biblioteca BLAS
+
+	Biblioteca BLAS (Basic Linear Algebra Subprograms) este o biblioteca
+care ajuta in efectuarea calculelor cu o eficienta sporita, folosind
+vectorizari. Functiile folosite fac parte din nivelul 3 BLAS, adica cel al
+operatiilor intre matrici. Functiile BLAS sunt foarte complexe, una putand
+include mai multe operatii de inmultire si adunare intre matrici.
+	Functiile folosite au fost:
+		-cblas_dsyr2k, pentru calculul zerotr(At*B + Bt*A)
+		-cblas_dgemm, pentru ridicarea la putere a rezultatului de la operatia
+		anterioara.
+	Implementarea se poate regasi in fisierul solver_blas.c
+	Timpii obtinuti pentru aceasta varianta sunt:
+	Folosind gcc-5.4.0:
+		N =  400: Time=0.037518;
+		N = 1000: Time=4.401309;
+		N = 1600: Time=2.037997;
+	Folosind icc 16.0.2:
+		N =  400: Time=0.037241;
+		N = 1000: Time=0.549096;
+		N = 1600: Time=2.186143;
+	Intre cele doua compilatoare nu se poate gasi o diferenta sesizabila, timpii
+fiind foarte apropiati. Fata de celelalte metode, timpii obtinuti cu BLAS sunt
+imbatabili, de ~9x mai mici fata de varianta optimizata prin cod folosind gcc.
+Se poate observa ca BLAS reuseste sa scaleze mult mai bine fata de celelalte
+metode. Pentru mai multe detalii de comparatie, a se vedea graficul atasat.
+
+		3. Grafice
+	Folosind GNUplot am generat mai multe grafice pentru a vizualiza diferentele
+Graficele generate sunt:
+		* gcc_plot.png - comparatia timpilor obtinuti pentru cele 4 variante
+folosind compilatorul gcc 5.4.0
+		* icc_plot.png -comparatia timpilor obtinuti pentru cele 4 variante
+folosind compilatorul icc 16.0.2
+		*icc_gcc_<mod>_plot.png - comparatie intre timpii obtinuti intre cele
+doua compilatoare pentru aceeasi varianta de rezolvare. <mod> poate fi unul dintre:
+"neopt", "opt_f", "opt_m" sau "blas", sugerand metoda de rezolvare plotata.
+
+		4. Observatii
+
+	Testarea a avut loc pe clusterul facultatii, pe ibm-dp.q, iar timpii obtinuti
+sunt cei rezultati in urma testarii. Dimensiunea matricilor a variat intre 400
+si 1600 cu pasi de 200.
+	In fisierele icc.data si gcc.data se gasesc timpii rezultati pentru fiecare
+compilator, pe fiecare varianta de implementare.
+	Pe cluster am folosit modulele compilers/gnu-5.4.0 si utilities/intel_parallel_studio_xe_2016
+	Am obtinut si un bonus de 10pct deoarece testul cu N=1600 pentru varianta
+optimizata din cod ruleaza in sub 21 secunde.
+
+		5. Referinte:
+	https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html
+	http://www.netlib.org/blas/
+	https://stackoverflow.com/questions/16064288/gcc-optimization-flags-for-matrix-vector-operations
+	https://en.wikipedia.org/wiki/Triangular_matrix
