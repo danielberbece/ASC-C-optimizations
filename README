@@ -119,7 +119,7 @@ include mai multe operatii de inmultire si adunare intre matrici.
 	Timpii obtinuti pentru aceasta varianta sunt:
 	Folosind gcc-5.4.0:
 		N =  400: Time=0.037518;
-		N = 1000: Time=4.401309;
+		N = 1000: Time=0.550141;
 		N = 1600: Time=2.037997;
 	Folosind icc 16.0.2:
 		N =  400: Time=0.037241;
